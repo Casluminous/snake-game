@@ -30,3 +30,8 @@ python snake.py
 ```bash
 python snake.py --selftest
 ```
+
+## Tài liệu
+
+- `docs/Bai-4-Ran-san-moi-Bao-cao-cach-lam.docx` — báo cáo cách làm và các thành phần chính
+- `docs/Bai-4-Ran-san-moi-Ly-thuyet-va-ky-thuat.pptx` — slide lý thuyết thuật toán và kỹ thuật
