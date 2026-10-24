@@ -6,9 +6,10 @@ Game rắn săn mồi viết bằng Python + pygame.
 
 | Phím | Chức năng |
 |---|---|
-| Mũi tên / WASD | Di chuyển |
+| W A S D | Di chuyển |
 | P | Tạm dừng |
-| R | Chơi lại (khi thua) |
+| R | Chơi lại (mọi lúc) |
+| Nút CHƠI LẠI | Bấm chuột để chơi lại khi thua |
 | Esc | Thoát |
 
 ## Quy tắc

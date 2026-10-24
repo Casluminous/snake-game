@@ -2,8 +2,8 @@
 """Bài 4 — Rắn săn mồi (pygame)
 
 Cách chơi:
-  - Mũi tên / WASD: di chuyển theo lưới (mỗi bước đúng 1 ô)
-  - P: tạm dừng        R: chơi lại        Esc: thoát
+  - W A S D: di chuyển theo lưới (mỗi bước đúng 1 ô)
+  - P: tạm dừng · R hoặc nút CHƠI LẠI: chơi lại · Esc: thoát
 Quy tắc:
   - Mồi đỏ  : +1 điểm, rắn dài thêm 1 đốt
   - Mồi vàng: chỉ tồn tại 5 giây rồi biến mất, ăn được +5 điểm
@@ -37,10 +37,10 @@ SPECIAL_SCORE = 5           # ăn mồi vàng +5 điểm
 SPECIAL_SPAWN_CHANCE = 0.015  # xác suất mồi vàng xuất hiện mỗi bước rắn
 
 DIRS = {
-    pygame.K_UP: (0, -1), pygame.K_w: (0, -1),
-    pygame.K_DOWN: (0, 1), pygame.K_s: (0, 1),
-    pygame.K_LEFT: (-1, 0), pygame.K_a: (-1, 0),
-    pygame.K_RIGHT: (1, 0), pygame.K_d: (1, 0),
+    pygame.K_w: (0, -1),
+    pygame.K_s: (0, 1),
+    pygame.K_a: (-1, 0),
+    pygame.K_d: (1, 0),
 }
 
 # Màu
@@ -72,6 +72,7 @@ class Game:
         self.font = pygame.font.SysFont("segoeui,arial", 18)
         self.font_big = pygame.font.SysFont("segoeui,arial", 34, bold=True)
         self.clock = pygame.time.Clock()
+        self.best = 0                     # kỷ lục giữ qua các lần chơi lại
         self.reset()
 
     # ---------- Khởi tạo / chơi lại ----------
@@ -83,7 +84,6 @@ class Game:
         self.score = 0
         self.eaten = 0                    # số mồi đã ăn, để đếm 5 mồi / lần tăng tốc
         self.speed = START_SPEED
-        self.best = 0
         self.game_over = False
         self.paused = False
         self.acc = 0                      # bộ tích luỹ thời gian cho chu kỳ bước rắn
@@ -111,16 +111,22 @@ class Game:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if (event.button == 1 and self.game_over
+                        and self.restart_button_rect().collidepoint(event.pos)):
+                    self.reset()
+                continue
             if event.type != pygame.KEYDOWN:
                 continue
-            if event.key in (pygame.K_ESCAPE,):
+            if event.key == pygame.K_ESCAPE:
                 pygame.quit()
                 sys.exit()
+            if event.key == pygame.K_r:          # chơi lại được ở mọi trạng thái
+                self.reset()
+                continue
             if self.game_over:
-                if event.key in (pygame.K_r, pygame.K_RETURN):
+                if event.key == pygame.K_RETURN:
                     self.reset()
-                elif event.key == pygame.K_p:
-                    pass
                 continue
             if event.key == pygame.K_p:
                 self.paused = not self.paused
@@ -239,9 +245,10 @@ class Game:
 
         self.draw_hud()
         if self.game_over:
-            self.draw_center_overlay("THUA RỒI!", "Điểm: %d   —   R: chơi lại   Esc: thoát" % self.score)
+            self.draw_center_overlay("THUA RỒI!", "Điểm: %d" % self.score)
+            self.draw_restart_button()
         elif self.paused:
-            self.draw_center_overlay("TẠM DỪNG", "P: chơi tiếp")
+            self.draw_center_overlay("TẠM DỪNG", "P: chơi tiếp · R: chơi lại")
 
     def draw_hud(self):
         self.best = max(self.best, self.score)
@@ -269,6 +276,23 @@ class Game:
         s = self.font.render(subtitle, True, HUD_TEXT)
         self.screen.blit(t, t.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 30)))
         self.screen.blit(s, s.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 20)))
+
+    def restart_button_rect(self):
+        """Vị trí nút CHƠI LẠI — dùng chung cho vẽ và bắt click chuột."""
+        rect = pygame.Rect(0, 0, 220, 48)
+        rect.center = (WIDTH // 2, HEIGHT // 2 + 80)
+        return rect
+
+    def draw_restart_button(self):
+        rect = self.restart_button_rect()
+        hover = rect.collidepoint(pygame.mouse.get_pos())
+        pygame.draw.rect(self.screen, (66, 190, 110) if hover else (46, 160, 90),
+                         rect, border_radius=8)
+        pygame.draw.rect(self.screen, HEAD, rect, 2, border_radius=8)
+        label = self.font.render("CHƠI LẠI  (R)", True, HUD_TEXT)
+        self.screen.blit(label, label.get_rect(center=rect.center))
+        hint = self.font.render("Esc: thoát", True, HUD_TEXT)
+        self.screen.blit(hint, hint.get_rect(center=(WIDTH // 2, rect.bottom + 20)))
 
 
 def main():
@@ -373,8 +397,36 @@ def _selftest():
     assert g.dir == (1, 0), "Không được cho phép quay đầu 180 độ"
     assert not g.game_over
 
-    # 9) Vẽ 1 khung không lỗi
-    g.draw()
+    # 8b) WASD là bộ phím di chuyển duy nhất
+    assert DIRS[pygame.K_w] == (0, -1) and DIRS[pygame.K_s] == (0, 1)
+    assert DIRS[pygame.K_a] == (-1, 0) and DIRS[pygame.K_d] == (1, 0)
+    assert pygame.K_UP not in DIRS and pygame.K_LEFT not in DIRS
+
+    # 9) Chơi lại: phím R (mọi lúc), nút bấm chuột, vẽ màn hình thua
+    g.game_over = False
+    g.draw()                              # khung bình thường
+    g.best = 42
+    g.score = 9
+    g.game_over = True
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_r))
+    g.handle_events()
+    assert not g.game_over and g.score == 0, "R phải chơi lại khi thua"
+    assert g.best == 42, "Chơi lại không được xoá kỷ lục"
+
+    g.paused = True
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_r))
+    g.handle_events()
+    assert not g.paused, "R phải chơi lại được khi đang tạm dừng"
+
+    g.game_over = True
+    g.score = 5
+    pygame.event.post(pygame.event.Event(
+        pygame.MOUSEBUTTONDOWN, button=1, pos=g.restart_button_rect().center))
+    g.handle_events()
+    assert not g.game_over and g.score == 0, "Bấm nút phải chơi lại"
+
+    g.game_over = True
+    g.draw()                              # màn hình thua có nút, không lỗi
     print("Selftest OK")
 
     pygame.quit()
